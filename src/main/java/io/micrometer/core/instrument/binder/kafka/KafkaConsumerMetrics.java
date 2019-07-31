@@ -17,7 +17,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 @Incubating(since = "1.3.0")
 @NonNullApi
 @NonNullFields
-public final class KafkaConsumerMetrics extends KafkaMetrics {
+public final class KafkaConsumerMetrics extends KafkaApiMetrics {
   public KafkaConsumerMetrics(Consumer<?, ?> kafkaConsumer) {
     super(kafkaConsumer::metrics);
   }

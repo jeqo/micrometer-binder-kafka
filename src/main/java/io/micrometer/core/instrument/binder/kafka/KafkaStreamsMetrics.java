@@ -17,7 +17,7 @@ import org.apache.kafka.streams.KafkaStreams;
 @Incubating(since = "1.3.0")
 @NonNullApi
 @NonNullFields
-public final class KafkaStreamsMetrics extends KafkaMetrics {
+public final class KafkaStreamsMetrics extends KafkaApiMetrics {
 
   public KafkaStreamsMetrics(KafkaStreams kafkaStreams) {
     super(kafkaStreams::metrics);

@@ -17,7 +17,7 @@ import org.apache.kafka.clients.producer.Producer;
 @Incubating(since = "1.3.0")
 @NonNullApi
 @NonNullFields
-public final class KafkaProducerMetrics extends KafkaMetrics {
+public final class KafkaProducerMetrics extends KafkaApiMetrics {
 
   public KafkaProducerMetrics(Producer<?, ?> kafkaProducer) {
     super(kafkaProducer::metrics);

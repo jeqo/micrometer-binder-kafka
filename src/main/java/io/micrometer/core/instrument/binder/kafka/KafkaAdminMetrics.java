@@ -5,7 +5,6 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.lang.NonNullApi;
 import io.micrometer.core.lang.NonNullFields;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.Consumer;
 
 /**
  * Kafka admin binder.
@@ -18,7 +17,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 @Incubating(since = "1.3.0")
 @NonNullApi
 @NonNullFields
-public final class KafkaAdminMetrics extends KafkaMetrics {
+public final class KafkaAdminMetrics extends KafkaApiMetrics {
   public KafkaAdminMetrics(AdminClient adminClient) {
     super(adminClient::metrics);
   }

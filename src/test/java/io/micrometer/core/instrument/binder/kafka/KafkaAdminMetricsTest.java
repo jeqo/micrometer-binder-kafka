@@ -6,9 +6,6 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Properties;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
 import org.junit.jupiter.api.Test;
 
 class KafkaAdminMetricsTest {

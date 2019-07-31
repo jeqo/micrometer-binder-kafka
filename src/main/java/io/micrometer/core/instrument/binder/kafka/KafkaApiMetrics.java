@@ -33,7 +33,7 @@ import static java.util.Collections.emptyList;
 @Incubating(since = "1.3.0")
 @NonNullApi
 @NonNullFields
-abstract class KafkaMetrics implements MeterBinder {
+abstract class KafkaApiMetrics implements MeterBinder {
   private static final String METRIC_NAME_PREFIX = "kafka.";
 
   private final Supplier<Map<MetricName, ? extends Metric>> metricsSupplier;
@@ -45,12 +45,12 @@ abstract class KafkaMetrics implements MeterBinder {
    */
   private AtomicInteger currentSize = new AtomicInteger(0);
 
-  KafkaMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier) {
+  KafkaApiMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier) {
     this.metricsSupplier = metricsSupplier;
     this.extraTags = emptyList();
   }
 
-  KafkaMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier,
+  KafkaApiMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier,
       Iterable<Tag> extraTags) {
     this.metricsSupplier = metricsSupplier;
     this.extraTags = extraTags;
