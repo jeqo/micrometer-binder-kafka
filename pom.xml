@@ -17,6 +17,8 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
+    <maven.javadoc.skip>true</maven.javadoc.skip>
+
     <micrometer.version>1.2.0</micrometer.version>
     <kafka.version>2.3.0</kafka.version>
     <junit.version>5.5.1</junit.version>
@@ -81,7 +83,11 @@
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.22.1</version>
+          <version>3.0.0-M3</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>3.0.0-M3</version>
         </plugin>
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
