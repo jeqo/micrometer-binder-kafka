@@ -4,10 +4,11 @@ import io.micrometer.core.annotation.Incubating;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.lang.NonNullApi;
 import io.micrometer.core.lang.NonNullFields;
-import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.consumer.Consumer;
 
 /**
- * Kafka Streams binder.
+ * Kafka admin binder.
  *
  * @author Jorge Quilcate
  * @see <a href="https://docs.confluent.io/current/kafka/monitoring.html">Kakfa monitoring
@@ -17,13 +18,12 @@ import org.apache.kafka.streams.KafkaStreams;
 @Incubating(since = "1.3.0")
 @NonNullApi
 @NonNullFields
-public final class KafkaStreamsMetrics extends KafkaMetrics {
-
-  public KafkaStreamsMetrics(KafkaStreams kafkaStreams) {
-    super(kafkaStreams::metrics);
+public final class KafkaAdminMetrics extends KafkaMetrics {
+  public KafkaAdminMetrics(AdminClient adminClient) {
+    super(adminClient::metrics);
   }
 
-  public KafkaStreamsMetrics(KafkaStreams kafkaStreams, Iterable<Tag> tags) {
-    super(kafkaStreams::metrics, tags);
+  public KafkaAdminMetrics(AdminClient adminClient, Iterable<Tag> tags) {
+    super(adminClient::metrics, tags);
   }
 }

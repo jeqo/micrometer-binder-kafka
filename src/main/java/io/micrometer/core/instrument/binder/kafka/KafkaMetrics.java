@@ -1,16 +1,3 @@
-/**
- * Copyright 2018 Pivotal Software, Inc.
- * <p>
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- * <p>
- * https://www.apache.org/licenses/LICENSE-2.0
- * <p>
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
 package io.micrometer.core.instrument.binder.kafka;
 
 import io.micrometer.core.annotation.Incubating;
@@ -33,11 +20,10 @@ import org.apache.kafka.common.MetricName;
 import static java.util.Collections.emptyList;
 
 /**
- * Kafka consumer metrics collected from metrics exposed by Kafka consumers via the MBeanServer.
- * Metrics are exposed at each consumer thread.
+ * Kafka metrics binder.
  * <p>
- * Metric names here are based on the naming scheme as it was last changed in Kafka version 0.11.0.
- * Metrics for earlier versions of Kafka will not report correctly.
+ * It is based on {@code metrics()} method returning {@link Metric} map exposed by clients and
+ * streams interface.
  *
  * @author Jorge Quilcate
  * @see <a href="https://docs.confluent.io/current/kafka/monitoring.html">Kakfa monitoring
@@ -54,6 +40,9 @@ abstract class KafkaMetrics implements MeterBinder {
 
   private final Iterable<Tag> extraTags;
 
+  /**
+   * Keep track of number of metrics, when this changes, metrics are re-bind.
+   */
   private AtomicInteger currentSize = new AtomicInteger(0);
 
   KafkaMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier) {
@@ -69,12 +58,13 @@ abstract class KafkaMetrics implements MeterBinder {
 
   @Override
   public void bindTo(MeterRegistry registry) {
-    registerMetrics(registry);
+    checkAndRegisterMetrics(registry);
   }
 
-  private void registerMetrics(MeterRegistry registry) {
+  private void checkAndRegisterMetrics(MeterRegistry registry) {
     Map<MetricName, ? extends Metric> metrics = metricsSupplier.get();
     if (currentSize.get() != metrics.size()) {
+      currentSize.set(metrics.size());
       metrics.forEach((metricName, metric) -> {
         if (metric.metricName().name().endsWith("total")
             || metric.metricName().name().endsWith("count")) {
@@ -85,18 +75,17 @@ abstract class KafkaMetrics implements MeterBinder {
           registerGauge(registry, metric, extraTags);
         } else if (metric.metricName().name().endsWith("rate")) {
           registerTimeGauge(registry, metric, extraTags);
-        } else {
+        } else { // this filter might need to be more extensive.
           registerCounter(registry, metric, extraTags);
         }
       });
-      currentSize.set(metrics.size());
     }
   }
 
   private void registerTimeGauge(MeterRegistry registry, Metric metric, Iterable<Tag> extraTags) {
     TimeGauge.builder(
         metricName(metric), metric, TimeUnit.SECONDS, m -> {
-          registerMetrics(registry);
+          checkAndRegisterMetrics(registry);
           if (m.metricValue() instanceof Double) {
             return (double) m.metricValue();
           } else {
@@ -117,7 +106,7 @@ abstract class KafkaMetrics implements MeterBinder {
       Iterable<Tag> extraTags) {
     Gauge.builder(
         metricName(metric), metric, m -> {
-          registerMetrics(registry);
+          checkAndRegisterMetrics(registry);
           if (m.metricValue() instanceof Double) {
             return (double) m.metricValue();
           } else {
@@ -138,7 +127,7 @@ abstract class KafkaMetrics implements MeterBinder {
       Iterable<Tag> extraTags) {
     FunctionCounter.builder(
         metricName(metric), metric, m -> {
-          registerMetrics(registry);
+          checkAndRegisterMetrics(registry);
           if (m.metricValue() instanceof Double) {
             return (double) m.metricValue();
           } else {
@@ -156,6 +145,8 @@ abstract class KafkaMetrics implements MeterBinder {
   }
 
   private String metricName(Metric metric) {
-    return METRIC_NAME_PREFIX + metric.metricName().group() + "." + metric.metricName().name();
+    String value =
+        METRIC_NAME_PREFIX + metric.metricName().group() + "." + metric.metricName().name();
+    return value.replaceAll("-", ".");
   }
 }
