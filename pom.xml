@@ -5,7 +5,7 @@
 
   <groupId>io.github.jeqo.micrometer</groupId>
   <artifactId>micrometer-binder-kafka</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1-SNAPSHOT</version>
 
   <name>micrometer-binder-kafka</name>
   <url>https://github.com/jeqo/micrometer-binder-kafka</url>
@@ -218,7 +218,7 @@
     <developerConnection>scm:git:ssh://git@github.com/jeqo/micrometer-binder-kafka.git
     </developerConnection>
     <url>https://github.com/jeqo/micrometer-binder-kafka/tree/master</url>
-    <tag>v0.1.0-RC1</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <issueManagement>
