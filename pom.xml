@@ -10,6 +10,7 @@
   <version>0.1.0-SNAPSHOT</version>
 
   <name>micrometer-binder-kafka</name>
+  <description>Micrometer binder for Kafka APIs</description>
   <url>https://github.com/jeqo/micrometer-binder-kafka</url>
 
   <properties>
