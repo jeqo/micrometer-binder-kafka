@@ -16,7 +16,7 @@ class KafkaConsumerMetricsTest {
 
   @Test void verify() {
     try (Consumer<String, String> consumer = createConsumer()) {
-      KafkaConsumerMetrics metrics = new KafkaConsumerMetrics(consumer, tags);
+      KafkaMetrics metrics = new KafkaMetrics(consumer, tags);
       MeterRegistry registry = new SimpleMeterRegistry();
 
       metrics.bindTo(registry);

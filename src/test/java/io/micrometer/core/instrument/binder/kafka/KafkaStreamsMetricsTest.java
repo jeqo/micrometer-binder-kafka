@@ -15,7 +15,7 @@ class KafkaStreamsMetricsTest {
 
   @Test void verify() {
     try (KafkaStreams kafkaStreams = createStreams()) {
-      KafkaStreamsMetrics metrics = new KafkaStreamsMetrics(kafkaStreams, tags);
+      KafkaMetrics metrics = new KafkaMetrics(kafkaStreams, tags);
       MeterRegistry registry = new SimpleMeterRegistry();
 
       metrics.bindTo(registry);

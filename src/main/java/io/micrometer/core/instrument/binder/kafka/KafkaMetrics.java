@@ -14,8 +14,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.MetricName;
+import org.apache.kafka.streams.KafkaStreams;
 
 import static java.util.Collections.emptyList;
 
@@ -33,7 +37,7 @@ import static java.util.Collections.emptyList;
 @Incubating(since = "1.3.0")
 @NonNullApi
 @NonNullFields
-abstract class KafkaApiMetrics implements MeterBinder {
+public class KafkaMetrics implements MeterBinder {
   private static final String METRIC_NAME_PREFIX = "kafka.";
 
   private final Supplier<Map<MetricName, ? extends Metric>> metricsSupplier;
@@ -45,12 +49,44 @@ abstract class KafkaApiMetrics implements MeterBinder {
    */
   private AtomicInteger currentSize = new AtomicInteger(0);
 
-  KafkaApiMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier) {
+  public KafkaMetrics(Producer<?, ?> kafkaProducer, Iterable<Tag> tags) {
+    this(kafkaProducer::metrics, tags);
+  }
+
+  public KafkaMetrics(Producer<?, ?> kafkaProducer) {
+    this(kafkaProducer::metrics);
+  }
+
+  public KafkaMetrics(Consumer<?, ?> kafkaConsumer, Iterable<Tag> tags) {
+    this(kafkaConsumer::metrics, tags);
+  }
+
+  public KafkaMetrics(Consumer<?, ?> kafkaConsumer) {
+    this(kafkaConsumer::metrics);
+  }
+
+  public KafkaMetrics(KafkaStreams kafkaStreams, Iterable<Tag> tags) {
+    this(kafkaStreams::metrics, tags);
+  }
+
+  public KafkaMetrics(KafkaStreams kafkaStreams) {
+    this(kafkaStreams::metrics);
+  }
+
+  public KafkaMetrics(AdminClient adminClient, Iterable<Tag> tags) {
+    this(adminClient::metrics, tags);
+  }
+
+  public KafkaMetrics(AdminClient adminClient) {
+    this(adminClient::metrics);
+  }
+
+  KafkaMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier) {
     this.metricsSupplier = metricsSupplier;
     this.extraTags = emptyList();
   }
 
-  KafkaApiMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier,
+  KafkaMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier,
       Iterable<Tag> extraTags) {
     this.metricsSupplier = metricsSupplier;
     this.extraTags = extraTags;

@@ -16,7 +16,7 @@ class KafkaProducerMetricsTest {
 
   @Test void verify() {
     try (Producer<String, String> producer = createProducer()) {
-      KafkaProducerMetrics metrics = new KafkaProducerMetrics(producer, tags);
+      KafkaMetrics metrics = new KafkaMetrics(producer, tags);
       MeterRegistry registry = new SimpleMeterRegistry();
 
       metrics.bindTo(registry);

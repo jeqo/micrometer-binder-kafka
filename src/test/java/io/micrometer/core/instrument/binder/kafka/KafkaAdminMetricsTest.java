@@ -14,7 +14,7 @@ class KafkaAdminMetricsTest {
 
   @Test void verify() {
     try (AdminClient adminClient = createAdmin()) {
-      KafkaAdminMetrics metrics = new KafkaAdminMetrics(adminClient, tags);
+      KafkaMetrics metrics = new KafkaMetrics(adminClient, tags);
       MeterRegistry registry = new SimpleMeterRegistry();
 
       metrics.bindTo(registry);
