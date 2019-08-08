@@ -49,34 +49,70 @@ public class KafkaMetrics implements MeterBinder {
    */
   private AtomicInteger currentSize = new AtomicInteger(0);
 
+  /**
+   * Kafka Producer metrics binder
+   * @param kafkaProducer producer instance to be instrumented
+   * @param tags additional tags
+   */
   public KafkaMetrics(Producer<?, ?> kafkaProducer, Iterable<Tag> tags) {
     this(kafkaProducer::metrics, tags);
   }
 
+  /**
+   * Kafka Producer metrics binder
+   * @param kafkaProducer producer instance to be instrumented
+   */
   public KafkaMetrics(Producer<?, ?> kafkaProducer) {
     this(kafkaProducer::metrics);
   }
 
+  /**
+   * Kafka Consumer metrics binder
+   * @param kafkaConsumer consumer instance to be instrumented
+   * @param tags additional tags
+   */
   public KafkaMetrics(Consumer<?, ?> kafkaConsumer, Iterable<Tag> tags) {
     this(kafkaConsumer::metrics, tags);
   }
 
+  /**
+   * Kafka Consumer metrics binder
+   * @param kafkaConsumer consumer instance to be instrumented
+   */
   public KafkaMetrics(Consumer<?, ?> kafkaConsumer) {
     this(kafkaConsumer::metrics);
   }
 
+  /**
+   * Kafka Streams metrics binder
+   * @param kafkaStreams instance to be instrumented
+   * @param tags additional tags
+   */
   public KafkaMetrics(KafkaStreams kafkaStreams, Iterable<Tag> tags) {
     this(kafkaStreams::metrics, tags);
   }
 
+  /**
+   * Kafka Streams metrics binder
+   * @param kafkaStreams instance to be instrumented
+   */
   public KafkaMetrics(KafkaStreams kafkaStreams) {
     this(kafkaStreams::metrics);
   }
 
+  /**
+   * Kafka Admin Client metrics binder
+   * @param adminClient instance to be instrumented
+   * @param tags additional tags
+   */
   public KafkaMetrics(AdminClient adminClient, Iterable<Tag> tags) {
     this(adminClient::metrics, tags);
   }
 
+  /**
+   * Kafka Admin client metrics binder
+   * @param adminClient instance to be instrumented
+   */
   public KafkaMetrics(AdminClient adminClient) {
     this(adminClient::metrics);
   }
