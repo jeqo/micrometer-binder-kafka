@@ -3,17 +3,23 @@ package io.micrometer.core.instrument.binder.kafka;
 import io.micrometer.core.annotation.Incubating;
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.TimeGauge;
 import io.micrometer.core.instrument.binder.MeterBinder;
 import io.micrometer.core.lang.NonNullApi;
 import io.micrometer.core.lang.NonNullFields;
+
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
@@ -38,187 +44,215 @@ import static java.util.Collections.emptyList;
 @NonNullApi
 @NonNullFields
 public class KafkaMetrics implements MeterBinder {
-  private static final String METRIC_NAME_PREFIX = "kafka.";
+    private static final String METRIC_NAME_PREFIX = "kafka.";
 
-  private final Supplier<Map<MetricName, ? extends Metric>> metricsSupplier;
+    private final Supplier<Map<MetricName, ? extends Metric>> metricsSupplier;
 
-  private final Iterable<Tag> extraTags;
+    private final Iterable<Tag> extraTags;
 
-  /**
-   * Keep track of number of metrics, when this changes, metrics are re-bind.
-   */
-  private AtomicInteger currentSize = new AtomicInteger(0);
+    /**
+     * Keep track of number of metrics, when this changes, metrics are re-bind.
+     */
+    private AtomicInteger currentSize = new AtomicInteger(0);
 
-  /**
-   * Kafka Producer metrics binder
-   * @param kafkaProducer producer instance to be instrumented
-   * @param tags additional tags
-   */
-  public KafkaMetrics(Producer<?, ?> kafkaProducer, Iterable<Tag> tags) {
-    this(kafkaProducer::metrics, tags);
-  }
-
-  /**
-   * Kafka Producer metrics binder
-   * @param kafkaProducer producer instance to be instrumented
-   */
-  public KafkaMetrics(Producer<?, ?> kafkaProducer) {
-    this(kafkaProducer::metrics);
-  }
-
-  /**
-   * Kafka Consumer metrics binder
-   * @param kafkaConsumer consumer instance to be instrumented
-   * @param tags additional tags
-   */
-  public KafkaMetrics(Consumer<?, ?> kafkaConsumer, Iterable<Tag> tags) {
-    this(kafkaConsumer::metrics, tags);
-  }
-
-  /**
-   * Kafka Consumer metrics binder
-   * @param kafkaConsumer consumer instance to be instrumented
-   */
-  public KafkaMetrics(Consumer<?, ?> kafkaConsumer) {
-    this(kafkaConsumer::metrics);
-  }
-
-  /**
-   * Kafka Streams metrics binder
-   * @param kafkaStreams instance to be instrumented
-   * @param tags additional tags
-   */
-  public KafkaMetrics(KafkaStreams kafkaStreams, Iterable<Tag> tags) {
-    this(kafkaStreams::metrics, tags);
-  }
-
-  /**
-   * Kafka Streams metrics binder
-   * @param kafkaStreams instance to be instrumented
-   */
-  public KafkaMetrics(KafkaStreams kafkaStreams) {
-    this(kafkaStreams::metrics);
-  }
-
-  /**
-   * Kafka Admin Client metrics binder
-   * @param adminClient instance to be instrumented
-   * @param tags additional tags
-   */
-  public KafkaMetrics(AdminClient adminClient, Iterable<Tag> tags) {
-    this(adminClient::metrics, tags);
-  }
-
-  /**
-   * Kafka Admin client metrics binder
-   * @param adminClient instance to be instrumented
-   */
-  public KafkaMetrics(AdminClient adminClient) {
-    this(adminClient::metrics);
-  }
-
-  KafkaMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier) {
-    this.metricsSupplier = metricsSupplier;
-    this.extraTags = emptyList();
-  }
-
-  KafkaMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier,
-      Iterable<Tag> extraTags) {
-    this.metricsSupplier = metricsSupplier;
-    this.extraTags = extraTags;
-  }
-
-  @Override
-  public void bindTo(MeterRegistry registry) {
-    checkAndRegisterMetrics(registry);
-  }
-
-  private void checkAndRegisterMetrics(MeterRegistry registry) {
-    Map<MetricName, ? extends Metric> metrics = metricsSupplier.get();
-    if (currentSize.get() != metrics.size()) {
-      currentSize.set(metrics.size());
-      metrics.forEach((metricName, metric) -> {
-        if (metric.metricName().name().endsWith("total")
-            || metric.metricName().name().endsWith("count")) {
-          registerCounter(registry, metric, extraTags);
-        } else if (metric.metricName().name().endsWith("min")
-            || metric.metricName().name().endsWith("max")
-            || metric.metricName().name().endsWith("avg")) {
-          registerGauge(registry, metric, extraTags);
-        } else if (metric.metricName().name().endsWith("rate")) {
-          registerTimeGauge(registry, metric, extraTags);
-        } else { // this filter might need to be more extensive.
-          registerCounter(registry, metric, extraTags);
-        }
-      });
+    /**
+     * Kafka Producer metrics binder
+     *
+     * @param kafkaProducer producer instance to be instrumented
+     * @param tags          additional tags
+     */
+    public KafkaMetrics(Producer<?, ?> kafkaProducer, Iterable<Tag> tags) {
+        this(kafkaProducer::metrics, tags);
     }
-  }
 
-  private void registerTimeGauge(MeterRegistry registry, Metric metric, Iterable<Tag> extraTags) {
-    TimeGauge.builder(
-        metricName(metric), metric, TimeUnit.SECONDS, m -> {
-          checkAndRegisterMetrics(registry);
-          if (m.metricValue() instanceof Double) {
-            return (double) m.metricValue();
-          } else {
-            return Double.NaN;
-          }
-        })
-        .tags(metric.metricName().tags()
-            .entrySet()
-            .stream()
-            .map(entry -> Tag.of(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList()))
-        .tags(extraTags)
-        .description(metric.metricName().description())
-        .register(registry);
-  }
+    /**
+     * Kafka Producer metrics binder
+     *
+     * @param kafkaProducer producer instance to be instrumented
+     */
+    public KafkaMetrics(Producer<?, ?> kafkaProducer) {
+        this(kafkaProducer::metrics);
+    }
 
-  private void registerGauge(MeterRegistry registry, Metric metric,
-      Iterable<Tag> extraTags) {
-    Gauge.builder(
-        metricName(metric), metric, m -> {
-          checkAndRegisterMetrics(registry);
-          if (m.metricValue() instanceof Double) {
-            return (double) m.metricValue();
-          } else {
-            return Double.NaN;
-          }
-        })
-        .tags(metric.metricName().tags()
-            .entrySet()
-            .stream()
-            .map(entry -> Tag.of(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList()))
-        .tags(extraTags)
-        .description(metric.metricName().description())
-        .register(registry);
-  }
+    /**
+     * Kafka Consumer metrics binder
+     *
+     * @param kafkaConsumer consumer instance to be instrumented
+     * @param tags          additional tags
+     */
+    public KafkaMetrics(Consumer<?, ?> kafkaConsumer, Iterable<Tag> tags) {
+        this(kafkaConsumer::metrics, tags);
+    }
 
-  private void registerCounter(MeterRegistry registry, Metric metric,
-      Iterable<Tag> extraTags) {
-    FunctionCounter.builder(
-        metricName(metric), metric, m -> {
-          checkAndRegisterMetrics(registry);
-          if (m.metricValue() instanceof Double) {
-            return (double) m.metricValue();
-          } else {
-            return Double.NaN;
-          }
-        })
-        .tags(metric.metricName().tags()
-            .entrySet()
-            .stream()
-            .map(entry -> Tag.of(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList()))
-        .tags(extraTags)
-        .description(metric.metricName().description())
-        .register(registry);
-  }
+    /**
+     * Kafka Consumer metrics binder
+     *
+     * @param kafkaConsumer consumer instance to be instrumented
+     */
+    public KafkaMetrics(Consumer<?, ?> kafkaConsumer) {
+        this(kafkaConsumer::metrics);
+    }
 
-  private String metricName(Metric metric) {
-    String value =
-        METRIC_NAME_PREFIX + metric.metricName().group() + "." + metric.metricName().name();
-    return value.replaceAll("-", ".");
-  }
+    /**
+     * Kafka Streams metrics binder
+     *
+     * @param kafkaStreams instance to be instrumented
+     * @param tags         additional tags
+     */
+    public KafkaMetrics(KafkaStreams kafkaStreams, Iterable<Tag> tags) {
+        this(kafkaStreams::metrics, tags);
+    }
+
+    /**
+     * Kafka Streams metrics binder
+     *
+     * @param kafkaStreams instance to be instrumented
+     */
+    public KafkaMetrics(KafkaStreams kafkaStreams) {
+        this(kafkaStreams::metrics);
+    }
+
+    /**
+     * Kafka Admin Client metrics binder
+     *
+     * @param adminClient instance to be instrumented
+     * @param tags        additional tags
+     */
+    public KafkaMetrics(AdminClient adminClient, Iterable<Tag> tags) {
+        this(adminClient::metrics, tags);
+    }
+
+    /**
+     * Kafka Admin client metrics binder
+     *
+     * @param adminClient instance to be instrumented
+     */
+    public KafkaMetrics(AdminClient adminClient) {
+        this(adminClient::metrics);
+    }
+
+    KafkaMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier) {
+        this.metricsSupplier = metricsSupplier;
+        this.extraTags = emptyList();
+    }
+
+    KafkaMetrics(Supplier<Map<MetricName, ? extends Metric>> metricsSupplier,
+                 Iterable<Tag> extraTags) {
+        this.metricsSupplier = metricsSupplier;
+        this.extraTags = extraTags;
+    }
+
+    @Override
+    public void bindTo(MeterRegistry registry) {
+        checkAndRegisterMetrics(registry);
+    }
+
+    private void checkAndRegisterMetrics(MeterRegistry registry) {
+        Map<MetricName, ? extends Metric> metrics = metricsSupplier.get();
+        if (currentSize.get() != metrics.size()) {
+            currentSize.set(metrics.size());
+            Map<String, Set<Meter>> metersRegistered = new HashMap<>();
+            metrics.forEach((name, metric) -> {
+                String metricName = metricName(metric);
+                Meter meter = null;
+                if (metricName.endsWith("total")
+                        || metricName.endsWith("count")) {
+                    meter = registerCounter(registry, metric, metricName, extraTags);
+                } else if (metricName.endsWith("min")
+                        || metricName.endsWith("max")
+                        || metricName.endsWith("avg")) {
+                    meter = registerGauge(registry, metric, metricName, extraTags);
+                } else if (metricName.endsWith("rate")) {
+                    meter = registerTimeGauge(registry, metric, metricName, extraTags);
+                } else { // this filter might need to be more extensive.
+                    meter = registerGauge(registry, metric, metricName, extraTags);
+                }
+                Set<Meter> meters = metersRegistered.get(metricName);
+                if (meters == null) meters = new HashSet<>();
+                meters.add(meter);
+                metersRegistered.put(metricName, meters);
+            });
+
+            metersRegistered.forEach((metricName, meters) -> {
+                if (meters.size() > 1) {
+                    int maxTagsSize = 0;
+                    for (Meter meter : meters) {
+                        int size = meter.getId().getTags().size();
+                        if (maxTagsSize < size) maxTagsSize = size;
+                    }
+                    for (Meter meter : meters) {
+                        if (meter.getId().getTags().size() < maxTagsSize) registry.remove(meter);
+                    }
+                }
+            });
+        }
+    }
+
+    private TimeGauge registerTimeGauge(MeterRegistry registry, Metric metric, String metricName,
+                                        Iterable<Tag> extraTags) {
+        return TimeGauge.builder(
+                metricName, metric, TimeUnit.SECONDS, m -> {
+                    checkAndRegisterMetrics(registry);
+                    if (m.metricValue() instanceof Double) {
+                        return (double) m.metricValue();
+                    } else {
+                        return Double.NaN;
+                    }
+                })
+                .tags(metric.metricName().tags()
+                        .entrySet()
+                        .stream()
+                        .map(entry -> Tag.of(entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toList()))
+                .tags(extraTags)
+                .description(metric.metricName().description())
+                .register(registry);
+    }
+
+    private Gauge registerGauge(MeterRegistry registry, Metric metric, String metricName, Iterable<Tag> extraTags) {
+        return Gauge.builder(
+                metricName, metric, m -> {
+                    checkAndRegisterMetrics(registry);
+                    if (m.metricValue() instanceof Double) {
+                        return (double) m.metricValue();
+                    } else {
+                        return Double.NaN;
+                    }
+                })
+                .tags(metric.metricName().tags()
+                        .entrySet()
+                        .stream()
+                        .map(entry -> Tag.of(entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toList()))
+                .tags(extraTags)
+                .description(metric.metricName().description())
+                .register(registry);
+    }
+
+    private FunctionCounter registerCounter(MeterRegistry registry, Metric metric, String metricName,
+                                            Iterable<Tag> extraTags) {
+        return FunctionCounter.builder(
+                metricName, metric, m -> {
+                    checkAndRegisterMetrics(registry);
+                    if (m.metricValue() instanceof Double) {
+                        return (double) m.metricValue();
+                    } else {
+                        return Double.NaN;
+                    }
+                })
+                .tags(metric.metricName().tags()
+                        .entrySet()
+                        .stream()
+                        .map(entry -> Tag.of(entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toList()))
+                .tags(extraTags)
+                .description(metric.metricName().description())
+                .register(registry);
+    }
+
+    private String metricName(Metric metric) {
+        String value =
+                METRIC_NAME_PREFIX + metric.metricName().group() + "." + metric.metricName().name();
+        return value.replaceAll("-", ".");
+    }
 }
